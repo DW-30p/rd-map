@@ -1,26 +1,37 @@
 // api/branches.js
-// Vercel Serverless Function + Neon (driver HTTP)
-// GET  /api/branches[?province=...]  -> lista sucursales
-// POST /api/branches  -> inserta { name, province, address, lat, lng, phone?, hours? }
+// Vercel Serverless Function + Neon (HTTP driver)
 
 import { neon } from '@neondatabase/serverless';
 
-const sql = neon(process.env.NEON_DATABASE_URL);
+const CONN =
+  process.env.DATABASE_URL ||
+  process.env.NEON_DATABASE_URL ||
+  '';
+
+if (!CONN) {
+  console.warn('⚠️ No DATABASE_URL/NEON_DATABASE_URL set');
+}
+
+const sql = neon(CONN);
 
 function setCors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Secret');
+  // acepta mayúsc/minúsc, algunos navegadores envían en minúscula
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Secret, x-admin-secret');
 }
 
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
 
-  // Asegura tabla + extensión (idempotente)
-  try {
-    await sql/*sql*/`CREATE EXTENSION IF NOT EXISTS pgcrypto;`;
-  } catch {}
+  // Si no hay conexión configurada, reporta claro
+  if (!CONN) {
+    return res.status(500).json({ error: 'Missing DATABASE_URL (or NEON_DATABASE_URL) env var' });
+  }
+
+  // Intento de migración simple (ignorar errores si rol no tiene permisos)
+  try { await sql/*sql*/`CREATE EXTENSION IF NOT EXISTS pgcrypto;`; } catch {}
   try {
     await sql/*sql*/`
       CREATE TABLE IF NOT EXISTS branches (
@@ -37,9 +48,7 @@ export default async function handler(req, res) {
         created_at   timestamptz DEFAULT now()
       );
     `;
-  } catch (e) {
-    // Si fallara la extensión, aún puedes usar la tabla si ya existía
-  }
+  } catch {}
 
   if (req.method === 'GET') {
     try {
@@ -60,6 +69,7 @@ export default async function handler(req, res) {
       res.setHeader('Content-Type', 'application/json');
       return res.status(200).json(rows);
     } catch (e) {
+      console.error('GET /api/branches error:', e);
       return res.status(500).json({ error: 'GET failed', detail: String(e) });
     }
   }
@@ -84,6 +94,7 @@ export default async function handler(req, res) {
       `;
       return res.status(200).json({ ok: true, row: rows[0] });
     } catch (e) {
+      console.error('POST /api/branches error:', e);
       return res.status(500).json({ error: 'POST failed', detail: String(e) });
     }
   }
