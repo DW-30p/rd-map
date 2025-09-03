@@ -1,36 +1,28 @@
 // api/branches.js
-// Vercel Serverless Function + Neon (HTTP driver)
+// Vercel Serverless Function + Neon (driver HTTP)
+// GET  /api/branches[?province=...]  -> lista sucursales
+// POST /api/branches  -> inserta { name, province, address, lat, lng, phone?, hours? }
 
 import { neon } from '@neondatabase/serverless';
-
-const CONN =
-  process.env.DATABASE_URL ||
-  process.env.NEON_DATABASE_URL ||
-  '';
-
-if (!CONN) {
-  console.warn('⚠️ No DATABASE_URL/NEON_DATABASE_URL set');
-}
-
-const sql = neon(CONN);
 
 function setCors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  // acepta mayúsc/minúsc, algunos navegadores envían en minúscula
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Secret, x-admin-secret');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Secret');
 }
 
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
 
-  // Si no hay conexión configurada, reporta claro
-  if (!CONN) {
-    return res.status(500).json({ error: 'Missing DATABASE_URL (or NEON_DATABASE_URL) env var' });
+  // ✅ Asegura que siempre tenga conexión (acepta NEON_DATABASE_URL o DATABASE_URL)
+  const conn = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+  if (!conn) {
+    return res.status(500).json({ error: 'Missing NEON_DATABASE_URL (or DATABASE_URL)' });
   }
+  const sql = neon(conn);
 
-  // Intento de migración simple (ignorar errores si rol no tiene permisos)
+  // Migración simple (idempotente)
   try { await sql/*sql*/`CREATE EXTENSION IF NOT EXISTS pgcrypto;`; } catch {}
   try {
     await sql/*sql*/`
@@ -58,18 +50,16 @@ export default async function handler(req, res) {
             SELECT id, name, province, municipality, address, lat, lng, phone, hours, is_active, created_at
             FROM branches
             WHERE is_active = true AND lower(province) = lower(${province})
-            ORDER BY created_at DESC
+            ORDER BY created_at DESC;
           `
         : await sql/*sql*/`
             SELECT id, name, province, municipality, address, lat, lng, phone, hours, is_active, created_at
             FROM branches
             WHERE is_active = true
-            ORDER BY created_at DESC
+            ORDER BY created_at DESC;
           `;
-      res.setHeader('Content-Type', 'application/json');
       return res.status(200).json(rows);
     } catch (e) {
-      console.error('GET /api/branches error:', e);
       return res.status(500).json({ error: 'GET failed', detail: String(e) });
     }
   }
@@ -90,11 +80,10 @@ export default async function handler(req, res) {
       const rows = await sql/*sql*/`
         INSERT INTO branches (name, province, address, lat, lng, phone, hours)
         VALUES (${name}, ${province}, ${address}, ${latNum}, ${lngNum}, ${phone}, ${hours})
-        RETURNING id, name, province, address, lat, lng, phone, hours, is_active, created_at
+        RETURNING id, name, province, address, lat, lng, phone, hours, is_active, created_at;
       `;
       return res.status(200).json({ ok: true, row: rows[0] });
     } catch (e) {
-      console.error('POST /api/branches error:', e);
       return res.status(500).json({ error: 'POST failed', detail: String(e) });
     }
   }
