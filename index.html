@@ -1,0 +1,1131 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Mapa RD - Sucursales</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <!-- html2canvas para captura de imagen -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- Inter Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --primary: #a855f7;
+      --primary-hover: #9333ea;
+      --primary-light: rgba(168, 85, 247, 0.1);
+      --primary-border: rgba(168, 85, 247, 0.2);
+      
+      --bg: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-tertiary: #f1f5f9;
+      --panel: #ffffff;
+      --panel-secondary: #f8fafc;
+      
+      --text: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+      
+      --border: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --divider: #f1f5f9;
+      
+      --success: #10b981;
+      --success-light: rgba(16, 185, 129, 0.1);
+      --danger: #ef4444;
+      --danger-light: rgba(239, 68, 68, 0.1);
+      --warning: #f59e0b;
+      
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      
+      --radius-sm: 6px;
+      --radius: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    
+    html, body { 
+      height: 100%; 
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-secondary);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .layout { 
+      display: grid; 
+      grid-template-columns: 400px 1fr; 
+      height: 100vh; 
+      gap: 0;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 24px 20px;
+    }
+
+    header .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    header .brand-logo {
+      width: 44px;
+      height: 44px;
+      background: var(--primary);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.025em;
+    }
+
+    header .sub {
+      margin-top: 2px;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 400;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .controls .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      grid-column: 1/-1;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: var(--shadow-sm);
+      font-size: 14px;
+      font-weight: 500;
+      font-family: inherit;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      border-color: var(--border-hover);
+      box-shadow: var(--shadow);
+      transform: translateY(-1px);
+    }
+
+    .btn.primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .btn.primary:hover {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: var(--text-secondary);
+    }
+
+    .btn.ghost:hover {
+      background: var(--bg-tertiary);
+      color: var(--text);
+    }
+
+    .section {
+      padding: 0 20px 20px;
+    }
+
+    .input {
+      width: 100%;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      outline: none;
+      font-size: 14px;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .dropdown-section {
+      position: relative;
+    }
+
+    .dropdown-list {
+      position: absolute;
+      top: 110%;
+      left: 0;
+      right: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      padding: 8px;
+      z-index: 2000;
+      max-height: 260px;
+      overflow: auto;
+      display: none;
+    }
+
+    .dropdown-item {
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-size: 14px;
+    }
+
+    .dropdown-item:hover {
+      background: var(--bg-secondary);
+    }
+
+    .list {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.15s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--primary);
+      border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    .card:hover {
+      border-color: var(--primary-border);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .name {
+      font-weight: 600;
+      font-size: 16px;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .meta {
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--primary-border);
+      color: var(--primary);
+      background: var(--primary-light);
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 500;
+      font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      background: var(--bg-secondary);
+      padding: 6px 10px;
+      border-radius: var(--radius-xl);
+      font-size: 12px;
+      font-weight: 500;
+      gap: 6px;
+    }
+
+    #mapWrap {
+      position: relative;
+      height: 100vh;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: var(--bg-secondary);
+    }
+
+    /* Map Search */
+    .map-search {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      gap: 12px;
+    }
+
+    .map-search-input {
+      flex: 1;
+      padding: 16px 20px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      transition: all 0.15s ease;
+      box-shadow: var(--shadow-lg);
+      font-family: inherit;
+    }
+
+    .map-search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light), var(--shadow-lg);
+    }
+
+    .map-search-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .map-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .map-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-xl);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-lg);
+      font-size: 16px;
+    }
+
+    .map-btn:hover {
+      border-color: var(--border-hover);
+      color: var(--text);
+      background: var(--bg-secondary);
+      box-shadow: var(--shadow-xl);
+      transform: translateY(-1px);
+    }
+
+    .loader {
+      position: absolute; 
+      top: 80px; 
+      right: 20px; 
+      background: var(--panel); 
+      color: var(--text); 
+      padding: 12px 16px; 
+      border-radius: var(--radius-xl); 
+      font-size: 14px; 
+      font-weight: 500;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      display: none;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      display: none;
+      z-index: 100;
+      font-weight: 500;
+      max-width: 400px;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+
+    .admin-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .admin-toggle input[type="checkbox"] {
+      accent-color: var(--primary);
+    }
+
+    /* Custom marker cluster styles */
+    .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+      background-color: var(--primary-light) !important;
+      border: 2px solid var(--primary) !important;
+      color: var(--primary) !important;
+      font-weight: 600 !important;
+      font-size: 12px !important;
+    }
+
+    .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+      background-color: var(--primary) !important;
+      color: white !important;
+      border-radius: 50% !important;
+    }
+
+    @media (max-width: 1024px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      
+      #sidebar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 60%;
+        border-top-left-radius: var(--radius-xl);
+        border-top-right-radius: var(--radius-xl);
+        border-right: 0;
+        box-shadow: var(--shadow-xl);
+        background: var(--panel);
+        z-index: 20;
+      }
+      
+      #mapWrap {
+        height: 40vh;
+      }
+      
+      .map-search {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+      
+      .controls .row-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+      
+      header {
+        padding: 20px 16px;
+      }
+      
+      .section {
+        padding: 0 16px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside id="sidebar">
+      <header>
+        <div class="brand">
+          <div class="brand-logo">RD</div>
+          <div>
+            <h1>Mapa RD</h1>
+            <div class="sub">Sucursales · República Dominicana</div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="clearFilter" class="btn ghost" title="Ver todas las sucursales">Ver todas</button>
+          <button id="resetView" class="btn ghost" title="Recentrar mapa">⌖ Centrar</button>
+          <div class="row-2">
+            <button id="download" class="btn primary">Descargar PNG</button>
+            <button id="shareView" class="btn ghost" title="Copiar enlace">Compartir</button>
+          </div>
+          <button id="exportCsv" class="btn ghost" title="Exportar sucursales visibles">Exportar CSV</button>
+        </div>
+        <div class="section">
+          <div class="search dropdown-section">
+            <input id="search" class="input" placeholder="Buscar dirección en RD..." autocomplete="off" />
+            <div id="results" class="dropdown-list"></div>
+          </div>
+        </div>
+      </header>
+
+      <div class="status-bar">
+        <span id="status" class="pill">Cargando...</span>
+        <label class="admin-toggle">
+          <input id="admin" type="checkbox" />
+          <span>Modo Admin "para agregar sucursales"</span>
+        </label>
+      </div>
+
+      <div class="section">
+        <div class="search">
+          <input id="sideFilter" class="input" placeholder="Filtrar sucursales..." />
+        </div>
+        <div id="sideList" class="list"></div>
+      </div>
+    </aside>
+
+    <div id="mapWrap">
+      <!-- Map Search -->
+      <div class="map-search">
+        <input id="mapSearch" class="map-search-input" placeholder="Buscar ubicación en el mapa..."/>
+        <div class="map-controls">
+          <button id="refreshBtn" class="map-btn" title="Refrescar datos">
+            ↻
+          </button>
+        </div>
+      </div>
+
+      <div id="map"></div>
+      <div id="loader" class="loader">Cargando…</div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ====== CONFIG ======
+    const MAPTILER_KEY = "";
+    const ADMIN_SECRET  = "";
+    const BASE_API = "/api/branches";   // la función serverless en Vercel
+    const RD_CENTER = [18.9, -70.3];
+    const RD_ZOOM   = 7;
+    // ====================
+
+    // Helpers
+    const $ = (id) => document.getElementById(id);
+    const $status = $('status');
+    const $toast = $('toast');
+    const $loader = $('loader');
+    const showStatus = (txt, ms=1200) => { $status.textContent = txt; };
+    const showToast = (txt, ms=1800) => { $toast.textContent = txt; $toast.style.display='block'; setTimeout(()=>{$toast.style.display='none';}, ms); };
+    const esc = (s='') => (''+s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    const busy = (v) => { $loader.style.display = v ? 'block':'none'; };
+
+    // Deep link ?ll=lat,lng&z=12&prov=...
+    const params = new URLSearchParams(location.search);
+    const llParam = params.get('ll'); const zParam = params.get('z'); const provParam = params.get('prov');
+
+    // Estado
+    let allBranches = [];
+    let selectedProvince = null;
+    let markers = [];
+
+    // Restaurar provincia
+    try {
+      if (provParam) selectedProvince = provParam;
+      else {
+        const lastProv = localStorage.getItem('rd_last_province') || '';
+        if (lastProv) selectedProvince = lastProv;
+      }
+    } catch {}
+
+    // Centro inicial
+    let startCenter = RD_CENTER, startZoom = RD_ZOOM;
+    if (llParam) {
+      const parts = llParam.split(',').map(Number);
+      if (parts.length===2 && !parts.some(Number.isNaN)) startCenter = [parts[0], parts[1]];
+    }
+    if (zParam && !Number.isNaN(+zParam)) startZoom = Math.max(3, Math.min(18, +zParam));
+    try {
+      if (!llParam && !zParam) {
+        const saved = JSON.parse(localStorage.getItem('rd_map_view')||'null');
+        if (saved && Array.isArray(saved.center) && typeof saved.zoom==='number') {
+          startCenter = saved.center; startZoom = saved.zoom;
+        }
+      }
+    } catch {}
+
+    // Mapa
+    const map = L.map('map', { worldCopyJump: true, zoomControl: true }).setView(startCenter, startZoom);
+    map.on('moveend', () => {
+      const c = map.getCenter(); const z = map.getZoom();
+      localStorage.setItem('rd_map_view', JSON.stringify({ center:[+c.lat.toFixed(6), +c.lng.toFixed(6)], zoom:z }));
+      const provQS = selectedProvince ? `&prov=${encodeURIComponent(selectedProvince)}` : '';
+      history.replaceState({}, '', `?ll=${c.lat.toFixed(5)},${c.lng.toFixed(5)}&z=${z}${provQS}`);
+    });
+
+    if (MAPTILER_KEY) {
+      L.tileLayer(`https://api.maptiler.com/maps/streets/256/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
+        attribution: '&copy; OpenStreetMap &copy; MapTiler'
+      }).addTo(map);
+    } else {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: ['a','b','c','d']
+      }).addTo(map);
+    }
+
+    // Cluster markers
+    const cluster = L.markerClusterGroup({
+      showCoverageOnHover:false,
+      spiderfyOnMaxZoom:true,
+      maxClusterRadius: 52
+    });
+    map.addLayer(cluster);
+
+    // Provincias
+    let provinceLayer = null;
+    const selectedStyle = { color: '#a855f7', weight: 3, fillOpacity: 0.25 };
+    const defaultStyle  = { color: '#cbd5e1', weight: 1, fillOpacity: 0.08 };
+    const getProvinceName = (f) => (f?.properties?.NAME_1 || f?.properties?.name || f?.properties?.provincia || null);
+
+    async function loadProvinces() {
+      try {
+        const url = 'https://raw.githubusercontent.com/wmgeolab/geoBoundaries/main/releaseData/geoBoundaries/ADM1/DOM/geoBoundaries-ADM1-DOM.geojson';
+        const r = await fetch(url, { cache: 'no-store' });
+        const gj = await r.json();
+        provinceLayer = L.geoJSON(gj, {
+          style: (feat) => (getProvinceName(feat) === selectedProvince) ? selectedStyle : defaultStyle,
+          onEachFeature: (feature, layer) => {
+            layer.on('click', () => {
+              const name = getProvinceName(feature);
+              if (!name) return;
+              selectedProvince = (selectedProvince === name) ? null : name;
+              localStorage.setItem('rd_last_province', selectedProvince || '');
+              provinceLayer.setStyle(f => (getProvinceName(f) === selectedProvince) ? selectedStyle : defaultStyle);
+              loadBranches().then(renderMarkers);
+            });
+          }
+        }).addTo(map);
+      } catch (e) {
+        console.warn('No se pudo cargar provincias:', e);
+      }
+    }
+
+    // Cargar sucursales
+    async function loadBranches() {
+      try {
+        busy(true);
+        const url = selectedProvince ? `${BASE_API}?province=${encodeURIComponent(selectedProvince)}` : BASE_API;
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) { console.error('GET branches error', r.status); allBranches = []; return; }
+        let data;
+        try { data = await r.json(); } catch { data = []; }
+        allBranches = Array.isArray(data) ? data.map(b => ({
+          ...b,
+          lat: typeof b.lat === 'string' ? parseFloat(b.lat) : b.lat,
+          lng: typeof b.lng === 'string' ? parseFloat(b.lng) : b.lng,
+          province: b.province || b.Province || b.provincia || ''
+        })) : [];
+      } catch (e) {
+        console.error('loadBranches falló:', e);
+        allBranches = [];
+      } finally {
+        busy(false);
+      }
+    }
+
+    function renderMarkers() {
+      cluster.clearLayers();
+      markers = [];
+      const list = selectedProvince
+        ? allBranches.filter(b => (b.province||'').toLowerCase() === selectedProvince?.toLowerCase())
+        : allBranches;
+
+      list.forEach((b, idx) => {
+        const lat = (typeof b.lat === 'string') ? parseFloat(b.lat) : b.lat;
+        const lng = (typeof b.lng === 'string') ? parseFloat(b.lng) : b.lng;
+        if (typeof lat !== 'number' || typeof lng !== 'number' || Number.isNaN(lat) || Number.isNaN(lng)) return;
+        
+        const customIcon = L.divIcon({
+          className: 'custom-marker',
+          html: '<div style="background-color: #a855f7; width: 25px; height: 25px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>',
+          iconSize: [25, 25],
+          iconAnchor: [12, 12]
+        });
+        
+        const m = L.marker([lat, lng], { icon: customIcon });
+        m.bindPopup(`
+          <div style="font-family: Inter, sans-serif; padding: 4px;">
+            <div style="font-weight: 600; font-size: 16px; margin-bottom: 8px; color: #0f172a;">${esc(b.name||'')}</div>
+            <div style="color: #475569; font-size: 14px; margin-bottom: 6px;">${esc(b.address||'')}</div>
+            ${b.phone?`<div style="color: #475569; font-size: 14px; margin-bottom: 12px;">Tel: ${esc(b.phone)}</div>`:''}
+            ${b.hours?`<div style="color: #475569; font-size: 14px; margin-bottom: 12px;">Horario: ${esc(b.hours)}</div>`:''}
+            <div style="display: flex; gap: 12px;">
+              <a target="_blank" href="https://www.google.com/maps?q=${lat},${lng}" style="color: #a855f7; text-decoration: none; font-weight: 500; font-size: 14px;">Google Maps</a>
+              <a target="_blank" href="https://waze.com/ul?ll=${lat},${lng}&navigate=yes" style="color: #a855f7; text-decoration: none; font-weight: 500; font-size: 14px;">Waze</a>
+            </div>
+          </div>
+        `);
+        m._metaIndex = idx;
+        markers.push(m);
+      });
+
+      cluster.addLayers(markers);
+      fillSidebar(list, markers);
+      showStatus(`${list.length} sucursal${list.length===1?'':'es'}`);
+    }
+
+    // Sidebar
+    function fillSidebar(list, markerList) {
+      const q = ($('sideFilter').value||'').trim().toLowerCase();
+      const filtered = q
+        ? list.map((b,i)=>({b,i})).filter(({b}) => (b.name||'').toLowerCase().includes(q) || (b.address||'').toLowerCase().includes(q) || (b.province||'').toLowerCase().includes(q))
+        : list.map((b,i)=>({b,i}));
+
+      $('sideList').innerHTML = filtered.map(({b,i}) => `
+        <div class="card" data-idx="${i}">
+          <div class="card-content">
+            <div style="flex:1">
+              <div class="name">${esc(b.name||'')}</div>
+              <div class="meta">${esc(b.address||'Sin dirección')}</div>
+              ${b.phone ? `<div class="meta">📞 ${esc(b.phone)}</div>` : ''}
+              <div class="meta">📍 ${esc(b.province||'')}</div>
+              <span class="tag">${b.lat.toFixed(5)}, ${b.lng.toFixed(5)}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      $('sideList').onclick = (ev) => {
+        const card = ev.target.closest('.card'); if (!card) return;
+        const idx = parseInt(card.getAttribute('data-idx'),10);
+        const b = list[idx]; if (!b) return;
+        const lat = +b.lat, lng = +b.lng;
+        map.flyTo([lat,lng], Math.max(map.getZoom(),14), {duration:0.6});
+        const marker = markerList[idx];
+        if (marker) setTimeout(()=> marker.openPopup(), 650);
+      };
+    }
+    
+    $('sideFilter').addEventListener('input', () => fillSidebar(
+      selectedProvince
+        ? allBranches.filter(b => (b.province||'').toLowerCase() === selectedProvince?.toLowerCase())
+        : allBranches,
+      markers
+    ));
+
+    // NUEVA FUNCIÓN DE DESCARGA - Método Canvas Nativo
+    $('download').addEventListener('click', async () => {
+      showToast('Preparando captura del mapa...');
+      
+      try {
+        // Guardar estado actual
+        const originalCenter = map.getCenter();
+        const originalZoom = map.getZoom();
+        
+        // Centrar según contenido
+        if (markers.length > 0) {
+          const group = new L.featureGroup(markers);
+          const bounds = group.getBounds();
+          map.fitBounds(bounds.pad(0.3), { animate: false, maxZoom: 8 });
+        } else {
+          // Vista completa de La Española incluyendo Punta Cana y extremos
+          map.fitBounds([
+            [17.3, -74.7],  // Suroeste (incluye más de Haití)
+            [20.3, -67.8]   // Noreste (incluye Punta Cana y Samaná completos)
+          ], { animate: false });
+        }
+        
+        // Esperar renderizado
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Crear canvas para captura manual
+        const mapContainer = document.getElementById('map');
+        const mapRect = mapContainer.getBoundingClientRect();
+        
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = mapRect.width;
+        canvas.height = mapRect.height;
+        
+        // Fondo
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        showToast('Capturando tiles del mapa...');
+        
+        // Capturar tiles de mapa
+        const tilePromises = [];
+        map.eachLayer(layer => {
+          if (layer._tiles) {
+            Object.values(layer._tiles).forEach(tile => {
+              if (tile.el && tile.el.complete && tile.el.src) {
+                const promise = new Promise((resolve) => {
+                  const img = new Image();
+                  img.crossOrigin = 'anonymous';
+                  img.onload = () => {
+                    const transform = tile.el.style.transform;
+                    const match = transform.match(/translate3d\((-?\d+)px, (-?\d+)px, 0px\)/);
+                    if (match) {
+                      const x = parseInt(match[1]);
+                      const y = parseInt(match[2]);
+                      ctx.drawImage(img, x, y, 256, 256);
+                    }
+                    resolve();
+                  };
+                  img.onerror = () => resolve();
+                  img.src = tile.el.src;
+                });
+                tilePromises.push(promise);
+              }
+            });
+          }
+        });
+        
+        // Esperar que se carguen todas las tiles
+        await Promise.all(tilePromises);
+        
+        showToast('Agregando marcadores...');
+        
+        // Dibujar marcadores
+        markers.forEach(marker => {
+          const point = map.latLngToContainerPoint(marker.getLatLng());
+          
+          // Dibujar marcador purple
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 12, 0, 2 * Math.PI);
+          ctx.fillStyle = '#a855f7';
+          ctx.fill();
+          ctx.strokeStyle = 'white';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        });
+        
+        // Convertir a blob y descargar
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const now = new Date();
+            a.href = url;
+            a.download = `mapa-rd-${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}.png`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showToast(`Mapa guardado exitosamente (${Math.round(blob.size/1024)}KB)`);
+          } else {
+            throw new Error('No se pudo generar la imagen');
+          }
+        }, 'image/png', 0.4);
+        
+        // Restaurar vista original
+        setTimeout(() => {
+          map.setView(originalCenter, originalZoom);
+          showToast('Vista restaurada');
+        }, 1500);
+        
+      } catch (error) {
+        console.error('Error en captura:', error);
+        
+        // Método de respaldo usando leaflet-image si está disponible
+        if (typeof leafletImage !== 'undefined') {
+          leafletImage(map, (err, canvas) => {
+            if (!err && canvas) {
+              canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `mapa-rd-backup-${Date.now()}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('Imagen guardada con método de respaldo');
+              });
+            } else {
+              showToast('Error: No se pudo capturar el mapa');
+            }
+          });
+        } else {
+          showToast('Error al capturar. Intenta recargar la página.');
+        }
+      }
+    });
+
+    // Limpiar filtro
+    $('clearFilter').addEventListener('click', () => {
+      selectedProvince = null;
+      localStorage.setItem('rd_last_province', '');
+      if (provinceLayer) provinceLayer.setStyle(() => defaultStyle);
+      loadBranches().then(renderMarkers);
+    });
+
+    // Recentrar
+    $('resetView').addEventListener('click', () => {
+      map.flyTo(RD_CENTER, RD_ZOOM, { duration: 1.2 });
+    });
+
+    // Compartir vista
+    $('shareView').addEventListener('click', () => {
+      const c = map.getCenter(); const z = map.getZoom();
+      const base = location.origin + location.pathname.replace(/\/+$/,'/');
+      const prov = selectedProvince ? `&prov=${encodeURIComponent(selectedProvince)}` : '';
+      const url = `${base}?ll=${c.lat.toFixed(5)},${c.lng.toFixed(5)}&z=${z}${prov}`;
+      navigator.clipboard.writeText(url).then(()=> showToast('🔗 Enlace copiado'));
+    });
+
+    // Exportar CSV
+    $('exportCsv').addEventListener('click', () => {
+      const list = selectedProvince
+        ? allBranches.filter(b => (b.province||'').toLowerCase() === selectedProvince?.toLowerCase())
+        : allBranches;
+      const headers = ['name','province','address','lat','lng','phone','hours','created_at'];
+      const rows = [headers.join(',')].concat(
+        list.map(b => headers.map(h => `"${String(b[h]??'').replace(/"/g,'""')}"`).join(','))
+      );
+      const blob = new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'sucursales.csv'; a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('📊 CSV exportado exitosamente');
+    });
+
+    // Refrescar datos
+    $('refreshBtn').addEventListener('click', () => {
+      loadBranches().then(renderMarkers);
+    });
+
+    // Búsqueda de direcciones
+    const $search = $('search');
+    const $results = $('results');
+    const $mapSearch = $('mapSearch');
+    let searchTimeout = null;
+
+    async function doSearch(query, callback) {
+      try{
+        let items = [];
+        if (MAPTILER_KEY) {
+          const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&language=es&limit=6&country=do`;
+          const r = await fetch(url); 
+          const j = await r.json();
+          items = (j.features||[]).map(f => {
+            const c = f.center || (f.geometry?.coordinates);
+            return { label: f.place_name || f.text, lat: c[1], lng: c[0] };
+          });
+        } else {
+          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&accept-language=es&countrycodes=do&limit=6`;
+          const r = await fetch(url, { headers: {'Accept':'application/json'} });
+          const j = await r.json();
+          items = (Array.isArray(j)?j:[]).map(o => ({ label:o.display_name, lat:+o.lat, lng:+o.lon }));
+        }
+        callback(items);
+      }catch(e){ callback([]); }
+    }
+
+    // Búsqueda en sidebar
+    $search.addEventListener('input', () => {
+      const q = $search.value.trim();
+      if (searchTimeout) clearTimeout(searchTimeout);
+      if (!q) { $results.style.display='none'; return; }
+      searchTimeout = setTimeout(() => {
+        doSearch(q, (items) => {
+          if (!items.length) { $results.style.display='none'; return; }
+          $results.innerHTML = items.map(i => `<div class="dropdown-item" data-lat="${i.lat}" data-lng="${i.lng}">${esc(i.label)}</div>`).join('');
+          $results.style.display='block';
+        });
+      }, 400);
+    });
+
+    // Búsqueda en mapa
+    $mapSearch.addEventListener('input', () => {
+      const q = $mapSearch.value.trim();
+      if (searchTimeout) clearTimeout(searchTimeout);
+      if (!q || q.length < 3) return;
+      searchTimeout = setTimeout(() => {
+        doSearch(q, (items) => {
+          if (items.length > 0) {
+            map.flyTo([items[0].lat, items[0].lng], Math.max(map.getZoom(), 12));
+          }
+        });
+      }, 600);
+    });
+
+    document.addEventListener('click', (e)=>{
+      if (!e.target.closest('.dropdown-section')) { $results.style.display='none'; }
+    });
+
+    $results.addEventListener('click', (e)=>{
+      const el = e.target.closest('.dropdown-item'); 
+      if(!el) return;
+      const lat = parseFloat(el.getAttribute('data-lat'));
+      const lng = parseFloat(el.getAttribute('data-lng'));
+      const label = el.textContent;
+      $search.value = label; 
+      $results.style.display='none';
+      map.flyTo([lat,lng], Math.max(map.getZoom(),14), {duration:0.7});
+      
+      const temp = L.marker([lat,lng], { 
+        icon: L.divIcon({
+          className: 'temp-marker',
+          html: '<div style="background-color: #ef4444; width: 25px; height: 25px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>',
+          iconSize: [25, 25],
+          iconAnchor: [12, 12]
+        })
+      }).addTo(map);
+      
+      let html = `<div style="font-family: Inter, sans-serif; padding: 4px;"><div style="font-weight: 600; margin-bottom: 8px;">${esc(label)}</div>`;
+      if ($('admin').checked) {
+        html += `<button onclick="createBranchHere(${lat}, ${lng}, '${esc(label)}')" style="background: #a855f7; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-family: inherit; margin-top: 8px;">Guardar sucursal aquí</button>`;
+      }
+      html += `</div>`;
+      temp.bindPopup(html).openPopup();
+      
+      map.once('popupclose', ()=> map.removeLayer(temp));
+    });
+
+    // Función global para crear sucursal
+    window.createBranchHere = async (lat, lng, address) => {
+      const name = prompt('Nombre de la sucursal:');
+      const province = selectedProvince || prompt('Provincia (exacta):') || '';
+      if (!name || !province) return;
+      const ok = await saveBranch({ name, address, province, lat, lng });
+      if (ok) { 
+        await loadBranches(); 
+        renderMarkers(); 
+        showToast('✅ Sucursal guardada exitosamente'); 
+      } else {
+        showToast('❌ Error al guardar');
+      }
+    };
+
+    // Click libre para crear (modo admin)
+    map.on('click', async (e)=>{
+      if (!$('admin').checked) return;
+      const {lat,lng} = e.latlng;
+      const name = prompt('Nombre de la sucursal:');
+      const address = prompt('Dirección:');
+      const province = selectedProvince || prompt('Provincia (exacta):') || '';
+      if (!name || !address || !province) return;
+      const ok = await saveBranch({ name, address, province, lat, lng });
+      if (ok) { 
+        await loadBranches(); 
+        renderMarkers(); 
+        showToast('✅ Sucursal creada exitosamente'); 
+      } else {
+        showToast('❌ Error al guardar');
+      }
+    });
+
+    async function saveBranch(payload){
+      try{
+        const r = await fetch(BASE_API, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json', ...(ADMIN_SECRET?{'x-admin-secret':ADMIN_SECRET}:{}) },
+          body: JSON.stringify(payload)
+        });
+        const j = await r.json().catch(()=> ({}));
+        return r.ok && (j.ok === true || !!j.row);
+      }catch{ return false; }
+    }
+
+    // Inicializar
+    (async function start(){
+      busy(true);
+      await Promise.allSettled([
+        loadBranches().then(renderMarkers),
+        loadProvinces()
+      ]);
+      busy(false);
+    })();
+  </script>
+</body>
+</html>
