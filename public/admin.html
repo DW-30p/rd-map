@@ -2,134 +2,272 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>Admin Sucursales RD</title>
+  <title>Admin · Sucursales RD</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
   <style>
-    html,body{height:100%;margin:0;font-family:system-ui,Arial,sans-serif;background:#f8fafc;color:#0f172a}
-    .top{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid #e5e7eb;background:#fff}
-    .btn{padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer}
-    .btn.danger{background:#fee2e2;border-color:#fecaca}
-    #map{height:calc(100vh - 52px)}
+    :root{
+      --primary:#7c3aed; --primary-2:#6d28d9;
+      --bg:#f7f8fb; --panel:#fff; --line:#e5e7eb; --text:#0f172a; --muted:#64748b;
+      --danger:#ef4444;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .layout{display:grid;grid-template-columns:380px 1fr;height:100%}
+    aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
+    header{padding:14px;border-bottom:1px solid var(--line)}
+    .row{display:flex;gap:8px;align-items:center}
+    .title{font-weight:600}
+    .input,.btn{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit}
+    .input{background:#f8fafc;flex:1}
+    .btn{background:#fff;cursor:pointer}
+    .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+    .btn.primary:hover{background:var(--primary-2)}
+    .btn.danger{background:#fee2e2;border-color:#fecaca;color:#991b1b}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .list{padding:12px;overflow:auto;display:grid;gap:10px}
+    .card{border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;cursor:pointer}
+    .name{font-weight:600}
+    .muted{color:var(--muted);font-size:12px}
+    #map{height:100%}
+    .bar{position:absolute;top:12px;left:12px;right:12px;display:flex;gap:8px;z-index:1000}
+    /* Modal */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.28);display:none;align-items:center;justify-content:center;z-index:2000}
+    .panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;width:min(520px,95vw)}
+    .panel h3{margin:0 0 10px 0}
+    .form{display:grid;gap:10px}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+    .toast{position:fixed;bottom:16px;left:16px;background:#fff;border:1px solid var(--line);padding:10px 12px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.08);display:none}
+    @media (max-width:980px){.layout{grid-template-columns:1fr}aside{position:absolute;z-index:1200;left:12px;right:12px;top:12px;height:52%;border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.1)}#map{height:100vh}}
   </style>
 </head>
 <body>
-  <div class="top">
-    <strong>Admin · Sucursales RD</strong>
-    <button id="refresh" class="btn">Refrescar</button>
-    <span style="margin-left:auto">Auth: <code id="authState">no</code></span>
+  <div class="layout">
+    <aside>
+      <header>
+        <div class="row">
+          <div class="title">Admin · Sucursales RD</div>
+          <a class="btn" href="./">Ir al mapa público</a>
+        </div>
+        <div class="grid">
+          <input id="search" class="input" placeholder="Buscar (nombre, dirección, provincia)..." />
+          <button id="createBtn" class="btn primary">+ Nueva</button>
+          <input id="adminSecret" class="input" placeholder="Contraseña admin (x-admin-secret)" />
+          <button id="saveSecret" class="btn">Guardar clave</button>
+        </div>
+      </header>
+      <div id="list" class="list"></div>
+    </aside>
+
+    <div style="position:relative">
+      <div class="bar">
+        <button id="refresh" class="btn">Refrescar</button>
+        <span id="status" class="btn" style="cursor:default">Cargando…</span>
+      </div>
+      <div id="map"></div>
+    </div>
   </div>
-  <div id="map"></div>
+
+  <!-- Modal Crear/Editar -->
+  <div id="modal" class="modal">
+    <div class="panel">
+      <h3 id="modalTitle">Nueva sucursal</h3>
+      <div class="form">
+        <input id="f_id" type="hidden" />
+        <input id="f_name" class="input" placeholder="Nombre *" />
+        <input id="f_province" class="input" placeholder="Provincia *" />
+        <input id="f_address" class="input" placeholder="Dirección *" />
+        <div class="row2">
+          <input id="f_lat" class="input" placeholder="Latitud *" />
+          <input id="f_lng" class="input" placeholder="Longitud *" />
+        </div>
+        <div class="row2">
+          <input id="f_phone" class="input" placeholder="Teléfono (opcional)" />
+          <input id="f_hours" class="input" placeholder="Horario (opcional)" />
+        </div>
+        <div class="actions">
+          <button id="cancel" class="btn">Cancelar</button>
+          <button id="save" class="btn primary">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
 
   <script>
-    const BASE_API = "/api/branches";
-    const MAP_CENTER = [18.9, -70.3], MAP_ZOOM = 7;
+    // === Config ===
+    const MAP_CENTER=[18.9,-70.3], MAP_ZOOM=7;
+    const BASE_API="/api/branches";
 
-    let ADMIN_SECRET = localStorage.getItem('rd_admin_secret') || null;
-    const authState = document.getElementById('authState');
+    // === State ===
+    let ADMIN_SECRET = localStorage.getItem('rd_admin_secret') || "";
+    let rows=[], markers=[], editing=null;
 
-    function ensureAuth() {
-      if (!ADMIN_SECRET) {
-        const s = prompt('Contraseña admin:');
-        if (!s) { alert('Sin contraseña no puedes editar/crear.'); return false; }
-        ADMIN_SECRET = s.trim();
-        localStorage.setItem('rd_admin_secret', ADMIN_SECRET);
-      }
-      authState.textContent = ADMIN_SECRET ? 'sí' : 'no';
-      return true;
+    // === DOM ===
+    const $ = id=>document.getElementById(id);
+    const status=$('status'), toast=$('toast');
+    const modal=$('modal'), title=$('modalTitle');
+    const f_id=$('f_id'), f_name=$('f_name'), f_province=$('f_province'), f_address=$('f_address'), f_lat=$('f_lat'), f_lng=$('f_lng'), f_phone=$('f_phone'), f_hours=$('f_hours');
+
+    $('adminSecret').value = ADMIN_SECRET;
+    $('saveSecret').onclick = ()=>{ ADMIN_SECRET=$('adminSecret').value.trim(); localStorage.setItem('rd_admin_secret', ADMIN_SECRET); showToast('✅ Clave guardada'); };
+
+    const showToast=(t)=>{ toast.textContent=t; toast.style.display='block'; setTimeout(()=>toast.style.display='none',1400); };
+
+    // === Map ===
+    const map=L.map('map').setView(MAP_CENTER,MAP_ZOOM);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{ attribution:'&copy; OpenStreetMap · CARTO', subdomains:['a','b','c','d'] }).addTo(map);
+    const layer=L.layerGroup().addTo(map);
+
+    // === Data ===
+    async function fetchAll(){
+      status.textContent='Cargando…';
+      const r = await fetch(BASE_API,{cache:'no-store'});
+      rows = r.ok ? await r.json() : [];
+      status.textContent = `${rows.length} sucursal${rows.length===1?'':'es'}`;
     }
 
-    const map = L.map('map').setView(MAP_CENTER, MAP_ZOOM);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: ['a','b','c','d']
-    }).addTo(map);
-
-    let all = [];
-    let layer = L.layerGroup().addTo(map);
-
-    async function loadAll() {
-      const r = await fetch(BASE_API, {cache:'no-store'});
-      all = r.ok ? await r.json() : [];
-    }
-
-    function draw() {
+    function draw(list=rows){
       layer.clearLayers();
-      all.forEach(b => {
-        const m = L.marker([+b.lat, +b.lng]).addTo(layer);
+      markers=[];
+      // lista
+      $('list').innerHTML = list.map((b,i)=>`
+        <div class="card" data-i="${i}">
+          <div class="name">${esc(b.name||'')}</div>
+          <div class="muted">${esc(b.address||'')}</div>
+          <div class="muted">📍 ${esc(b.province||'')}</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" data-edit="${i}">Editar</button>
+            <button class="btn danger" data-del="${i}">Eliminar</button>
+          </div>
+        </div>
+      `).join('');
+
+      // eventos lista
+      $('list').onclick = (ev)=>{
+        const editBtn = ev.target.closest('[data-edit]');
+        const delBtn  = ev.target.closest('[data-del]');
+        const card    = ev.target.closest('.card');
+        if (editBtn){ openEdit(+editBtn.getAttribute('data-edit'), list); return; }
+        if (delBtn){  doDelete(+delBtn.getAttribute('data-del'), list); return; }
+        if (card){ const i=+card.getAttribute('data-i'); const b=list[i]; map.flyTo([+b.lat,+b.lng], 14, {duration:.7}); }
+      };
+
+      // marcadores
+      list.forEach((b,i)=>{
+        const m = L.marker([+b.lat,+b.lng]).addTo(layer);
         m.bindPopup(`
           <div style="min-width:240px">
             <strong>${esc(b.name)}</strong><br/>
             ${esc(b.address)}<br/>
-            <small>Prov: ${esc(b.province)} · ${(+b.lat).toFixed(5)}, ${(+b.lng).toFixed(5)}</small>
+            <small>${esc(b.province)} · ${(+b.lat).toFixed(5)}, ${(+b.lng).toFixed(5)}</small>
             <div style="display:flex;gap:8px;margin-top:8px">
-              <button onclick="editBranch('${b.id}')" class="btn">Editar</button>
-              <button onclick="delBranch('${b.id}')" class="btn danger">Eliminar</button>
+              <button class="btn" onclick="openEdit(${i})">Editar</button>
+              <button class="btn danger" onclick="doDelete(${i})">Eliminar</button>
             </div>
           </div>
         `);
+        markers.push(m);
       });
     }
 
-    window.editBranch = async function(id){
-      if (!ensureAuth()) return;
-      const b = all.find(x => x.id === id);
-      if (!b) return alert('No encontrada');
+    // global helpers para botones de popup
+    window.openEdit = (i, list=rows)=>{ const b=list[i]; if(!b) return; openModal(b); };
+    window.doDelete = async (i, list=rows)=>{
+      const b=list[i]; if(!b) return;
+      if(!ADMIN_SECRET){ alert('Falta contraseña admin'); return; }
+      if(!confirm('¿Eliminar (baja lógica) la sucursal?')) return;
+      const r = await fetch(`${BASE_API}?id=${encodeURIComponent(b.id)}`, { method:'DELETE', headers:{ 'x-admin-secret': ADMIN_SECRET }});
+      if(!r.ok) return showToast('❌ Error al eliminar');
+      await fetchAll(); draw(); showToast('🗑️ Eliminada');
+    };
 
-      const name = prompt('Nombre:', b.name); if (name==null) return;
-      const province = prompt('Provincia:', b.province); if (province==null) return;
-      const address = prompt('Dirección:', b.address); if (address==null) return;
-      const lat = parseFloat(prompt('Latitud:', b.lat)); if (Number.isNaN(lat)) return alert('Lat inválida');
-      const lng = parseFloat(prompt('Longitud:', b.lng)); if (Number.isNaN(lng)) return alert('Lng inválida');
-      const phone = prompt('Teléfono (opcional):', b.phone || '') || null;
-      const hours = prompt('Horario (opcional):', b.hours || '') || null;
-
-      const r = await fetch(`${BASE_API}?id=${encodeURIComponent(id)}`, {
-        method:'PUT',
-        headers:{ 'Content-Type':'application/json', 'x-admin-secret': ADMIN_SECRET },
-        body: JSON.stringify({ name, province, address, lat, lng, phone, hours })
-      });
-      if (!r.ok) return alert('Error al actualizar');
-      await loadAll(); draw();
-    }
-
-    window.delBranch = async function(id){
-      if (!ensureAuth()) return;
-      if (!confirm('¿Eliminar (baja lógica) esta sucursal?')) return;
-      const r = await fetch(`${BASE_API}?id=${encodeURIComponent(id)}`, {
-        method:'DELETE',
-        headers:{ 'x-admin-secret': ADMIN_SECRET }
-      });
-      if (!r.ok) return alert('Error al eliminar');
-      await loadAll(); draw();
-    }
-
-    map.on('click', async (e) => {
-      if (!ensureAuth()) return;
-      const {lat,lng} = e.latlng;
-      const name = prompt('Nombre:'); if (!name) return;
-      const province = prompt('Provincia:'); if (!province) return;
-      const address = prompt('Dirección:'); if (!address) return;
-      const phone = prompt('Teléfono (opcional):') || null;
-      const hours = prompt('Horario (opcional):') || null;
-
-      const r = await fetch(BASE_API, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json','x-admin-secret': ADMIN_SECRET },
-        body: JSON.stringify({ name, province, address, lat, lng, phone, hours })
-      });
-      if (!r.ok) return alert('Error al crear');
-      await loadAll(); draw();
+    // === Search ===
+    $('search').addEventListener('input', ()=>{
+      const q = $('search').value.trim().toLowerCase();
+      if(!q) return draw(rows);
+      const list = rows.filter(b =>
+        (b.name||'').toLowerCase().includes(q) ||
+        (b.address||'').toLowerCase().includes(q) ||
+        (b.province||'').toLowerCase().includes(q)
+      );
+      draw(list);
     });
 
-    document.getElementById('refresh').onclick = async () => { await loadAll(); draw(); };
+    // === Create ===
+    $('createBtn').onclick = ()=> openModal();
+
+    // === Refresh ===
+    $('refresh').onclick = async()=>{ await fetchAll(); draw(); showToast('Datos actualizados'); };
+
+    // === Modal ===
+    function openModal(branch=null){
+      editing = branch;
+      title.textContent = branch ? 'Editar sucursal' : 'Nueva sucursal';
+      f_id.value = branch?.id || '';
+      f_name.value = branch?.name || '';
+      f_province.value = branch?.province || '';
+      f_address.value = branch?.address || '';
+      f_lat.value = branch?.lat ?? '';
+      f_lng.value = branch?.lng ?? '';
+      f_phone.value = branch?.phone ?? '';
+      f_hours.value = branch?.hours ?? '';
+      modal.style.display='flex';
+    }
+    function closeModal(){ modal.style.display='none'; }
+
+    $('cancel').onclick = closeModal;
+    modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
+
+    $('save').onclick = async()=>{
+      if(!ADMIN_SECRET){ alert('Falta contraseña admin'); return; }
+      const payload = {
+        name:f_name.value.trim(),
+        province:f_province.value.trim(),
+        address:f_address.value.trim(),
+        lat: parseFloat(f_lat.value),
+        lng: parseFloat(f_lng.value),
+        phone: f_phone.value.trim() || null,
+        hours: f_hours.value.trim() || null
+      };
+      if(!payload.name || !payload.province || !payload.address || Number.isNaN(payload.lat)||Number.isNaN(payload.lng)){
+        alert('Completa los campos obligatorios'); return;
+      }
+
+      let resp;
+      if (editing && f_id.value) {
+        // UPDATE
+        resp = await fetch(`${BASE_API}?id=${encodeURIComponent(f_id.value)}`, {
+          method:'PUT',
+          headers:{ 'Content-Type':'application/json', 'x-admin-secret':ADMIN_SECRET },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        // CREATE
+        resp = await fetch(BASE_API, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json', 'x-admin-secret':ADMIN_SECRET },
+          body: JSON.stringify(payload)
+        });
+      }
+      if(!resp.ok){ showToast('❌ Error al guardar'); return; }
+      closeModal();
+      await fetchAll(); draw();
+      showToast('✅ Cambios guardados');
+    };
 
     const esc = s => (''+s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 
-    (async function boot(){
-      await loadAll(); draw();
-      authState.textContent = ADMIN_SECRET ? 'sí' : 'no';
-    })();
+    (async function boot(){ await fetchAll(); draw(); })();
   </script>
 </body>
 </html>
