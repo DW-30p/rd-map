@@ -308,7 +308,7 @@
           <div class="popup-address">📍 ${esc(branch.address || '')}</div>
           <div class="popup-coords">🏛️ ${esc(branch.province || '')} · ${(+branch.lat).toFixed(5)}, ${(+branch.lng).toFixed(5)}</div>
           <div class="popup-actions">
-            <a href="https://www.google.com/maps/dir/?api=1&destination=${branch.lat},${branch.lng}" 
+            <a href="https://www.google.com/maps/place/${branch.lat},${branch.lng}/@${branch.lat},${branch.lng},17z" 
                target="_blank" 
                class="action-btn">
               <img src="/icons/maps.png" alt="Google Maps" onerror="this.innerHTML='🗺️'; this.style.fontSize='16px';">
