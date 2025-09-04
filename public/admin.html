@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin Sucursales RD</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    html,body{height:100%;margin:0;font-family:system-ui,Arial,sans-serif;background:#f8fafc;color:#0f172a}
+    .top{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid #e5e7eb;background:#fff}
+    .btn{padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer}
+    .btn.danger{background:#fee2e2;border-color:#fecaca}
+    #map{height:calc(100vh - 52px)}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <strong>Admin · Sucursales RD</strong>
+    <button id="refresh" class="btn">Refrescar</button>
+    <span style="margin-left:auto">Auth: <code id="authState">no</code></span>
+  </div>
+  <div id="map"></div>
+
+  <script>
+    const BASE_API = "/api/branches";
+    const MAP_CENTER = [18.9, -70.3], MAP_ZOOM = 7;
+
+    let ADMIN_SECRET = localStorage.getItem('rd_admin_secret') || null;
+    const authState = document.getElementById('authState');
+
+    function ensureAuth() {
+      if (!ADMIN_SECRET) {
+        const s = prompt('Contraseña admin:');
+        if (!s) { alert('Sin contraseña no puedes editar/crear.'); return false; }
+        ADMIN_SECRET = s.trim();
+        localStorage.setItem('rd_admin_secret', ADMIN_SECRET);
+      }
+      authState.textContent = ADMIN_SECRET ? 'sí' : 'no';
+      return true;
+    }
+
+    const map = L.map('map').setView(MAP_CENTER, MAP_ZOOM);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: ['a','b','c','d']
+    }).addTo(map);
+
+    let all = [];
+    let layer = L.layerGroup().addTo(map);
+
+    async function loadAll() {
+      const r = await fetch(BASE_API, {cache:'no-store'});
+      all = r.ok ? await r.json() : [];
+    }
+
+    function draw() {
+      layer.clearLayers();
+      all.forEach(b => {
+        const m = L.marker([+b.lat, +b.lng]).addTo(layer);
+        m.bindPopup(`
+          <div style="min-width:240px">
+            <strong>${esc(b.name)}</strong><br/>
+            ${esc(b.address)}<br/>
+            <small>Prov: ${esc(b.province)} · ${(+b.lat).toFixed(5)}, ${(+b.lng).toFixed(5)}</small>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button onclick="editBranch('${b.id}')" class="btn">Editar</button>
+              <button onclick="delBranch('${b.id}')" class="btn danger">Eliminar</button>
+            </div>
+          </div>
+        `);
+      });
+    }
+
+    window.editBranch = async function(id){
+      if (!ensureAuth()) return;
+      const b = all.find(x => x.id === id);
+      if (!b) return alert('No encontrada');
+
+      const name = prompt('Nombre:', b.name); if (name==null) return;
+      const province = prompt('Provincia:', b.province); if (province==null) return;
+      const address = prompt('Dirección:', b.address); if (address==null) return;
+      const lat = parseFloat(prompt('Latitud:', b.lat)); if (Number.isNaN(lat)) return alert('Lat inválida');
+      const lng = parseFloat(prompt('Longitud:', b.lng)); if (Number.isNaN(lng)) return alert('Lng inválida');
+      const phone = prompt('Teléfono (opcional):', b.phone || '') || null;
+      const hours = prompt('Horario (opcional):', b.hours || '') || null;
+
+      const r = await fetch(`${BASE_API}?id=${encodeURIComponent(id)}`, {
+        method:'PUT',
+        headers:{ 'Content-Type':'application/json', 'x-admin-secret': ADMIN_SECRET },
+        body: JSON.stringify({ name, province, address, lat, lng, phone, hours })
+      });
+      if (!r.ok) return alert('Error al actualizar');
+      await loadAll(); draw();
+    }
+
+    window.delBranch = async function(id){
+      if (!ensureAuth()) return;
+      if (!confirm('¿Eliminar (baja lógica) esta sucursal?')) return;
+      const r = await fetch(`${BASE_API}?id=${encodeURIComponent(id)}`, {
+        method:'DELETE',
+        headers:{ 'x-admin-secret': ADMIN_SECRET }
+      });
+      if (!r.ok) return alert('Error al eliminar');
+      await loadAll(); draw();
+    }
+
+    map.on('click', async (e) => {
+      if (!ensureAuth()) return;
+      const {lat,lng} = e.latlng;
+      const name = prompt('Nombre:'); if (!name) return;
+      const province = prompt('Provincia:'); if (!province) return;
+      const address = prompt('Dirección:'); if (!address) return;
+      const phone = prompt('Teléfono (opcional):') || null;
+      const hours = prompt('Horario (opcional):') || null;
+
+      const r = await fetch(BASE_API, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json','x-admin-secret': ADMIN_SECRET },
+        body: JSON.stringify({ name, province, address, lat, lng, phone, hours })
+      });
+      if (!r.ok) return alert('Error al crear');
+      await loadAll(); draw();
+    });
+
+    document.getElementById('refresh').onclick = async () => { await loadAll(); draw(); };
+
+    const esc = s => (''+s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+
+    (async function boot(){
+      await loadAll(); draw();
+      authState.textContent = ADMIN_SECRET ? 'sí' : 'no';
+    })();
+  </script>
+</body>
+</html>
