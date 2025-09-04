@@ -311,13 +311,13 @@
             <a href="https://www.google.com/maps/dir/?api=1&destination=${branch.lat},${branch.lng}" 
                target="_blank" 
                class="action-btn">
-              <img src="./public/icons/maps.png" alt="Google Maps" onerror="this.style.display='none'">
+              <img src="/icons/maps.png" alt="Google Maps" onerror="this.innerHTML='🗺️'; this.style.fontSize='16px';">
               <span>Google Maps</span>
             </a>
             <a href="https://waze.com/ul?ll=${branch.lat},${branch.lng}&navigate=yes" 
                target="_blank" 
                class="action-btn">
-              <img src="./public/icons/waze.png" alt="Waze" onerror="this.style.display='none'">
+              <img src="/icons/waze.png" alt="Waze" onerror="this.innerHTML='🚗'; this.style.fontSize='16px';">
               <span>Waze</span>
             </a>
           </div>
