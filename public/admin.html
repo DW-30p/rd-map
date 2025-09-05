@@ -904,21 +904,34 @@
       if (!secret.trim()) return false;
       
       try {
-        // Hacemos una simple llamada GET para ver si la contraseña es válida
-        // en lugar de hacer POST con datos de prueba
-        const testResponse = await fetch(BASE_API + '?validate_admin=true', {
-          method: 'GET',
+        // Hacemos una petición OPTIONS para validar credenciales sin crear datos
+        const testResponse = await fetch(BASE_API, {
+          method: 'OPTIONS',
           headers: { 
             'x-admin-secret': secret 
           }
         });
         
-        // Si la respuesta no es 401 o 403, la contraseña es válida
-        return testResponse.status !== 401 && testResponse.status !== 403;
+        // Si es 401 o 403, la contraseña es incorrecta
+        if (testResponse.status === 401 || testResponse.status === 403) {
+          return false;
+        }
+        
+        // Si obtenemos cualquier otra respuesta (200, 404, 405, etc.), la contraseña es válida
+        return true;
       } catch (error) {
         console.error('Error validating admin secret:', error);
-        // En caso de error de conexión, asumimos que es válida para evitar bloqueos
-        return true;
+        // En caso de error de conexión, validamos haciendo una petición HEAD
+        try {
+          const headResponse = await fetch(BASE_API, {
+            method: 'HEAD',
+            headers: { 'x-admin-secret': secret }
+          });
+          return headResponse.status !== 401 && headResponse.status !== 403;
+        } catch {
+          // Si todo falla, asumimos contraseña incorrecta por seguridad
+          return false;
+        }
       }
     }
 
