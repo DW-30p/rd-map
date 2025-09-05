@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>Admin · Sucursales RD</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -29,6 +29,10 @@
       --danger: #ef4444;
       --success: #10b981;
       --shadow: 0 4px 20px rgba(0,0,0,.08);
+      --shadow-lg: 0 10px 30px rgba(0,0,0,.15);
+      --z-sidebar: 1000;
+      --z-modal: 2000;
+      --z-toast: 3000;
     }
     
     * { 
@@ -40,9 +44,11 @@
       margin: 0; 
       font-family: Inter, system-ui, Arial, sans-serif; 
       background: var(--bg); 
-      color: var(--text); 
+      color: var(--text);
+      overflow-x: hidden;
     }
 
+    /* Layout Base */
     .layout { 
       display: grid; 
       grid-template-columns: minmax(320px, 420px) 1fr; 
@@ -50,13 +56,53 @@
       overflow: hidden; 
     }
 
+    /* Sidebar */
     aside { 
       background: var(--panel); 
       border-right: 1px solid var(--line); 
       display: flex; 
       flex-direction: column; 
-      z-index: 1000;
+      z-index: var(--z-sidebar);
       min-width: 320px;
+      position: relative;
+    }
+
+    /* Mobile Toggle Button */
+    .mobile-toggle {
+      display: none;
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: calc(var(--z-sidebar) + 100);
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: var(--shadow-lg);
+      transition: all 0.2s ease;
+    }
+
+    .mobile-toggle:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .mobile-close {
+      display: none;
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--danger);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: calc(var(--z-sidebar) + 1);
     }
 
     header { 
@@ -82,17 +128,20 @@
       color: #fff; 
       font-weight: 600; 
       box-shadow: var(--shadow);
+      flex-shrink: 0;
     }
 
     .title { 
       font-weight: 600; 
       font-size: 18px; 
+      line-height: 1.2;
     }
 
     .subtitle { 
       font-size: 13px; 
       color: var(--muted); 
       margin-top: 2px; 
+      line-height: 1.2;
     }
 
     .status-indicator {
@@ -128,7 +177,9 @@
       border-radius: 12px; 
       padding: 12px 14px; 
       font: inherit; 
-      transition: all 0.2s ease; 
+      transition: all 0.2s ease;
+      font-size: 14px;
+      min-height: 44px; /* Touch-friendly height */
     }
 
     .input, .select { 
@@ -147,12 +198,21 @@
       font-weight: 500; 
       text-align: center;
       text-decoration: none;
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      user-select: none;
     }
     
     .btn:hover { 
       background: #f8fafc; 
       border-color: var(--primary); 
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     .btn.primary { 
@@ -248,13 +308,16 @@
 
     .name { 
       font-weight: 600; 
-      margin-bottom: 6px; 
+      margin-bottom: 6px;
+      font-size: 15px;
+      line-height: 1.3;
     }
 
     .muted { 
       color: var(--muted); 
       font-size: 13px; 
-      margin: 2px 0; 
+      margin: 2px 0;
+      line-height: 1.4;
     }
 
     .card-actions {
@@ -265,15 +328,18 @@
     }
 
     .card-actions .btn {
-      padding: 6px 12px;
+      padding: 8px 12px;
       font-size: 12px;
       flex: 1;
-      min-width: 60px;
+      min-width: 70px;
+      min-height: 36px;
     }
 
+    /* Map Container */
     #mapWrap { 
       position: relative; 
       overflow: hidden; 
+      flex: 1;
     }
 
     #map { 
@@ -302,6 +368,7 @@
       font-size: 13px; 
       font-weight: 500; 
       box-shadow: var(--shadow); 
+      white-space: nowrap;
     }
 
     .map-btn { 
@@ -314,7 +381,12 @@
       font-size: 13px; 
       font-weight: 500; 
       box-shadow: var(--shadow); 
-      transition: all 0.2s ease; 
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     
     .map-btn:hover { 
@@ -323,6 +395,7 @@
       box-shadow: 0 8px 30px rgba(208, 28, 128, 0.3); 
     }
 
+    /* Modal */
     .modal { 
       position: fixed; 
       inset: 0; 
@@ -330,8 +403,9 @@
       display: none; 
       align-items: center; 
       justify-content: center; 
-      z-index: 2000; 
+      z-index: var(--z-modal); 
       backdrop-filter: blur(4px);
+      padding: 20px;
     }
 
     .modal-panel { 
@@ -339,8 +413,8 @@
       border: 1px solid var(--line); 
       border-radius: 16px; 
       padding: 24px; 
-      width: min(600px, 95vw); 
-      max-height: 90vh;
+      width: min(600px, 100%); 
+      max-height: calc(100vh - 40px);
       overflow-y: auto;
       box-shadow: 0 20px 50px rgba(0,0,0,0.15);
     }
@@ -350,12 +424,14 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 20px;
+      gap: 16px;
     }
 
     .modal-title { 
       margin: 0; 
       font-size: 20px;
       font-weight: 600;
+      flex: 1;
     }
 
     .close-btn {
@@ -365,10 +441,18 @@
       cursor: pointer;
       color: var(--muted);
       padding: 4px;
+      flex-shrink: 0;
+      min-width: 32px;
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .close-btn:hover {
       color: var(--text);
+      background: #f8fafc;
+      border-radius: 6px;
     }
 
     .form { 
@@ -402,6 +486,7 @@
       font-size: 12px;
       color: var(--muted);
       font-style: italic;
+      line-height: 1.3;
     }
 
     .actions { 
@@ -413,6 +498,7 @@
       border-top: 1px solid var(--line);
     }
 
+    /* Toast */
     .toast { 
       position: fixed; 
       bottom: 20px; 
@@ -424,19 +510,21 @@
       border-radius: 12px; 
       box-shadow: var(--shadow); 
       display: none; 
-      z-index: 3000; 
-      max-width: 400px;
+      z-index: var(--z-toast); 
+      max-width: calc(100vw - 40px);
+      text-align: center;
     }
 
+    /* Leaflet Customization */
     .leaflet-control-zoom a {
       background-color: var(--primary) !important;
       border: 1px solid var(--primary) !important;
       color: white !important;
       font-weight: 600 !important;
       font-size: 18px !important;
-      width: 30px !important;
-      height: 30px !important;
-      line-height: 28px !important;
+      width: 36px !important;
+      height: 36px !important;
+      line-height: 34px !important;
       border-radius: 8px !important;
       box-shadow: var(--shadow) !important;
       transition: all 0.2s ease !important;
@@ -461,42 +549,85 @@
       cursor: crosshair !important;
     }
 
-    /* Responsive */
-    @media (max-width: 1400px) {
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px !important;
+    }
+
+    .leaflet-popup-tip {
+      background: white !important;
+    }
+
+    /* ========== RESPONSIVE DESIGN ========== */
+
+    /* Large Desktop - 1400px+ */
+    @media (min-width: 1400px) {
       .layout {
-        grid-template-columns: minmax(300px, 380px) 1fr;
+        grid-template-columns: minmax(380px, 450px) 1fr;
+      }
+      
+      .modal-panel {
+        width: min(700px, 95vw);
       }
     }
 
-    @media (max-width: 1200px) {
+    /* Standard Desktop - 1200px to 1399px */
+    @media (max-width: 1399px) {
       .layout {
-        grid-template-columns: minmax(280px, 350px) 1fr;
+        grid-template-columns: minmax(320px, 380px) 1fr;
       }
     }
 
-    @media (max-width: 1024px) {
+    /* Small Desktop/Large Laptop - 1024px to 1199px */
+    @media (max-width: 1199px) {
+      .layout {
+        grid-template-columns: minmax(300px, 350px) 1fr;
+      }
+      
+      .title {
+        font-size: 16px;
+      }
+      
+      .modal-panel {
+        width: min(550px, 95vw);
+      }
+    }
+
+    /* Tablet Landscape - 768px to 1023px */
+    @media (max-width: 1023px) {
       .layout {
         grid-template-columns: 1fr;
         position: relative;
       }
 
+      .mobile-toggle {
+        display: block;
+      }
+
       aside {
-        position: absolute;
-        z-index: 1200;
-        left: 16px;
-        top: 16px;
-        right: 16px;
-        height: 50%;
-        width: auto;
+        position: fixed;
+        left: -100%;
+        top: 0;
+        bottom: 0;
+        width: min(380px, 85vw);
         min-width: unset;
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0,0,0,.15);
+        border: none;
+        border-right: 1px solid var(--line);
+        box-shadow: var(--shadow-lg);
         backdrop-filter: blur(10px);
+        transition: left 0.3s ease;
+        z-index: var(--z-sidebar);
+      }
+
+      aside.open {
+        left: 0;
+      }
+
+      .mobile-close {
+        display: block;
       }
 
       .list {
-        max-height: calc(50vh - 300px);
+        max-height: calc(100vh - 280px);
       }
 
       #map {
@@ -504,10 +635,12 @@
       }
 
       .topbar {
-        top: auto;
-        bottom: 16px;
+        top: 70px;
         left: 16px;
         right: 16px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
       }
 
       .form-row {
@@ -519,66 +652,36 @@
       }
 
       .modal-panel {
-        width: min(500px, 90vw);
-        margin: 20px;
+        width: min(500px, 95vw);
+        max-height: calc(100vh - 40px);
+      }
+
+      .pill, .map-btn {
+        font-size: 12px;
+        padding: 8px 14px;
       }
     }
 
-    @media (max-width: 768px) {
-      aside {
-        left: 12px;
+    /* Tablet Portrait - 481px to 767px */
+    @media (max-width: 767px) {
+      .mobile-toggle {
         top: 12px;
-        right: 12px;
-        height: 55%;
+        left: 12px;
+        padding: 10px;
+        font-size: 16px;
+      }
+
+      aside {
+        width: min(350px, 90vw);
       }
 
       .list {
-        max-height: calc(55vh - 280px);
+        max-height: calc(100vh - 260px);
         padding: 12px;
       }
 
       header {
         padding: 16px;
-      }
-
-      .topbar {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
-        bottom: 12px;
-        left: 12px;
-        right: 12px;
-      }
-
-      .pill, .map-btn {
-        text-align: center;
-      }
-
-      .modal-panel {
-        padding: 20px;
-        width: min(450px, 95vw);
-      }
-
-      .actions {
-        flex-direction: column;
-      }
-    }
-
-    @media (max-width: 480px) {
-      aside {
-        height: 60%;
-        left: 8px;
-        top: 8px;
-        right: 8px;
-      }
-
-      .list {
-        max-height: calc(60vh - 260px);
-        padding: 8px;
-      }
-
-      header {
-        padding: 12px;
       }
 
       .brand {
@@ -594,81 +697,732 @@
         font-size: 16px;
       }
 
+      .subtitle {
+        font-size: 12px;
+      }
+
+      .topbar {
+        top: 60px;
+        bottom: auto;
+        left: 12px;
+        right: 12px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+      }
+
+      .pill, .map-btn {
+        text-align: center;
+        font-size: 12px;
+        padding: 8px 12px;
+        min-height: 36px;
+      }
+
+      .modal {
+        padding: 15px;
+      }
+
       .modal-panel {
-        padding: 16px;
-        width: calc(100vw - 20px);
-        margin: 10px;
-        max-height: 90vh;
-        overflow-y: auto;
+        padding: 20px;
+        width: 100%;
+        max-height: calc(100vh - 30px);
+        border-radius: 12px;
       }
 
       .modal-title {
         font-size: 18px;
       }
 
+      .actions {
+        flex-direction: column-reverse;
+      }
+
+      .card {
+        padding: 14px;
+      }
+
+      .card-actions {
+        margin-top: 10px;
+        gap: 6px;
+      }
+
+      .card-actions .btn {
+        padding: 6px 10px;
+        font-size: 11px;
+        min-height: 32px;
+        min-width: 60px;
+      }
+
+      .input, .btn, .select {
+        padding: 12px;
+        font-size: 14px;
+        min-height: 48px;
+      }
+
+      .leaflet-control-zoom a {
+        width: 40px !important;
+        height: 40px !important;
+        line-height: 38px !important;
+        font-size: 20px !important;
+      }
+    }
+
+    /* Mobile Large - 376px to 480px */
+    @media (max-width: 480px) {
+      .mobile-toggle {
+        top: 10px;
+        left: 10px;
+        padding: 8px;
+        font-size: 14px;
+        border-radius: 10px;
+      }
+
+      aside {
+        width: min(320px, 95vw);
+      }
+
+      .list {
+        max-height: calc(100vh - 240px);
+        padding: 10px;
+        gap: 10px;
+      }
+
+      header {
+        padding: 12px;
+      }
+
+      .brand {
+        margin-bottom: 10px;
+        gap: 10px;
+      }
+
+      .logo {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+      }
+
+      .title {
+        font-size: 15px;
+      }
+
+      .subtitle {
+        font-size: 11px;
+      }
+
+      .status-indicator {
+        padding: 6px 10px;
+        font-size: 11px;
+        margin-bottom: 12px;
+      }
+
+      .controls {
+        gap: 10px;
+      }
+
       .topbar {
-        bottom: 8px;
-        left: 8px;
-        right: 8px;
+        top: 50px;
+        left: 10px;
+        right: 10px;
+        gap: 4px;
+      }
+
+      .pill, .map-btn {
+        font-size: 11px;
+        padding: 6px 10px;
+        min-height: 32px;
+        border-radius: 16px;
+      }
+
+      .modal {
+        padding: 10px;
+      }
+
+      .modal-panel {
+        padding: 16px;
+        width: 100%;
+        max-height: calc(100vh - 20px);
+        border-radius: 10px;
+      }
+
+      .modal-title {
+        font-size: 17px;
+      }
+
+      .modal-header {
+        margin-bottom: 16px;
+        gap: 12px;
+      }
+
+      .close-btn {
+        font-size: 20px;
+        min-width: 28px;
+        min-height: 28px;
+      }
+
+      .form {
+        gap: 14px;
+      }
+
+      .form-row {
+        gap: 10px;
+      }
+
+      .form-group {
+        gap: 4px;
+      }
+
+      .form-label {
+        font-size: 13px;
+      }
+
+      .coordinate-helper {
+        font-size: 11px;
+      }
+
+      .actions {
+        margin-top: 16px;
+        padding-top: 16px;
+        gap: 10px;
       }
 
       .card {
         padding: 12px;
+        border-radius: 12px;
+      }
+
+      .name {
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+
+      .muted {
+        font-size: 12px;
       }
 
       .card-actions {
         margin-top: 8px;
+        gap: 4px;
       }
 
       .card-actions .btn {
         padding: 4px 8px;
-        font-size: 11px;
+        font-size: 10px;
+        min-height: 28px;
+        min-width: 50px;
       }
 
-      .form-row {
-        grid-template-columns: 1fr;
+      .input, .btn, .select {
+        padding: 10px 12px;
+        font-size: 14px;
+        min-height: 44px;
+        border-radius: 10px;
       }
 
       .grid {
-        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .toast {
+        bottom: 15px;
+        max-width: calc(100vw - 20px);
+        padding: 10px 16px;
+        font-size: 13px;
       }
     }
 
-    @media (max-width: 360px) {
+    /* Mobile Small - 320px to 375px */
+    @media (max-width: 375px) {
+      .mobile-toggle {
+        top: 8px;
+        left: 8px;
+        padding: 6px;
+        font-size: 13px;
+      }
+
       aside {
-        height: 65%;
-        left: 4px;
-        top: 4px;
-        right: 4px;
+        width: min(300px, 98vw);
       }
 
       .list {
-        max-height: calc(65vh - 240px);
-      }
-
-      .modal-panel {
-        width: calc(100vw - 10px);
-        margin: 5px;
-        padding: 12px;
+        max-height: calc(100vh - 220px);
+        padding: 8px;
+        gap: 8px;
       }
 
       header {
-        padding: 8px;
+        padding: 10px;
+      }
+
+      .brand {
+        margin-bottom: 8px;
+        gap: 8px;
+      }
+
+      .logo {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+
+      .title {
+        font-size: 14px;
+      }
+
+      .subtitle {
+        font-size: 10px;
+      }
+
+      .status-indicator {
+        padding: 4px 8px;
+        font-size: 10px;
+        margin-bottom: 10px;
       }
 
       .controls {
         gap: 8px;
       }
 
+      .topbar {
+        top: 45px;
+        left: 8px;
+        right: 8px;
+        gap: 3px;
+      }
+
+      .pill, .map-btn {
+        font-size: 10px;
+        padding: 5px 8px;
+        min-height: 30px;
+        border-radius: 15px;
+      }
+
+      .modal {
+        padding: 5px;
+      }
+
+      .modal-panel {
+        padding: 12px;
+        width: 100%;
+        max-height: calc(100vh - 10px);
+        border-radius: 8px;
+      }
+
+      .modal-title {
+        font-size: 16px;
+      }
+
+      .modal-header {
+        margin-bottom: 12px;
+        gap: 8px;
+      }
+
+      .close-btn {
+        font-size: 18px;
+        min-width: 24px;
+        min-height: 24px;
+      }
+
+      .form {
+        gap: 12px;
+      }
+
+      .form-row {
+        gap: 8px;
+      }
+
+      .form-label {
+        font-size: 12px;
+      }
+
+      .coordinate-helper {
+        font-size: 10px;
+      }
+
+      .actions {
+        margin-top: 12px;
+        padding-top: 12px;
+        gap: 8px;
+      }
+
+      .card {
+        padding: 10px;
+        border-radius: 10px;
+      }
+
+      .name {
+        font-size: 13px;
+        margin-bottom: 3px;
+      }
+
+      .muted {
+        font-size: 11px;
+      }
+
+      .card-actions {
+        margin-top: 6px;
+        gap: 3px;
+      }
+
+      .card-actions .btn {
+        padding: 3px 6px;
+        font-size: 9px;
+        min-height: 26px;
+        min-width: 45px;
+      }
+
       .input, .btn, .select {
         padding: 8px 10px;
+        font-size: 13px;
+        min-height: 40px;
+        border-radius: 8px;
+      }
+
+      .grid {
+        gap: 8px;
+      }
+
+      .toast {
+        bottom: 10px;
+        max-width: calc(100vw - 16px);
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+
+      .leaflet-control-zoom a {
+        width: 36px !important;
+        height: 36px !important;
+        line-height: 34px !important;
+        font-size: 18px !important;
+      }
+    }
+
+    /* Mobile Extra Small - 280px to 319px */
+    @media (max-width: 319px) {
+      .mobile-toggle {
+        top: 6px;
+        left: 6px;
+        padding: 4px;
+        font-size: 12px;
+      }
+
+      aside {
+        width: 100vw;
+      }
+
+      .list {
+        max-height: calc(100vh - 200px);
+        padding: 6px;
+        gap: 6px;
+      }
+
+      header {
+        padding: 8px;
+      }
+
+      .brand {
+        margin-bottom: 6px;
+        gap: 6px;
+      }
+
+      .logo {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        font-size: 11px;
+      }
+
+      .title {
+        font-size: 13px;
+      }
+
+      .subtitle {
+        font-size: 9px;
+      }
+
+      .status-indicator {
+        padding: 3px 6px;
+        font-size: 9px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+      }
+
+      .controls {
+        gap: 6px;
+      }
+
+      .topbar {
+        top: 40px;
+        left: 6px;
+        right: 6px;
+        gap: 2px;
+      }
+
+      .pill, .map-btn {
+        font-size: 9px;
+        padding: 4px 6px;
+        min-height: 28px;
+        border-radius: 14px;
+      }
+
+      .modal {
+        padding: 3px;
+      }
+
+      .modal-panel {
+        padding: 10px;
+        width: 100%;
+        max-height: calc(100vh - 6px);
+        border-radius: 6px;
+      }
+
+      .modal-title {
+        font-size: 15px;
+      }
+
+      .modal-header {
+        margin-bottom: 10px;
+        gap: 6px;
+      }
+
+      .close-btn {
+        font-size: 16px;
+        min-width: 22px;
+        min-height: 22px;
+      }
+
+      .form {
+        gap: 10px;
+      }
+
+      .form-row {
+        gap: 6px;
+      }
+
+      .form-label {
+        font-size: 11px;
+      }
+
+      .coordinate-helper {
+        font-size: 9px;
+      }
+
+      .actions {
+        margin-top: 10px;
+        padding-top: 10px;
+        gap: 6px;
+      }
+
+      .card {
+        padding: 8px;
+        border-radius: 8px;
+      }
+
+      .name {
+        font-size: 12px;
+        margin-bottom: 2px;
+      }
+
+      .muted {
+        font-size: 10px;
+      }
+
+      .card-actions {
+        margin-top: 4px;
+        gap: 2px;
+      }
+
+      .card-actions .btn {
+        padding: 2px 4px;
+        font-size: 8px;
+        min-height: 24px;
+        min-width: 40px;
+      }
+
+      .input, .btn, .select {
+        padding: 6px 8px;
+        font-size: 12px;
+        min-height: 36px;
+        border-radius: 6px;
+      }
+
+      .grid {
+        gap: 6px;
+      }
+
+      .toast {
+        bottom: 8px;
+        max-width: calc(100vw - 12px);
+        padding: 6px 10px;
+        font-size: 11px;
+        border-radius: 8px;
+      }
+
+      .leaflet-control-zoom a {
+        width: 32px !important;
+        height: 32px !important;
+        line-height: 30px !important;
+        font-size: 16px !important;
+      }
+    }
+
+    /* Landscape Orientation Adjustments */
+    @media (orientation: landscape) and (max-height: 500px) {
+      aside {
+        width: min(320px, 50vw);
+      }
+
+      .list {
+        max-height: calc(100vh - 180px);
+      }
+
+      .topbar {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .modal-panel {
+        max-height: calc(100vh - 20px);
+        width: min(500px, 90vw);
+      }
+    }
+
+    /* High DPI / Retina Display Adjustments */
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+      .leaflet-control-zoom a {
+        transform: scale(0.9);
+        transform-origin: center;
+      }
+
+      .mobile-toggle {
+        transform: scale(0.95);
+        transform-origin: top left;
+      }
+    }
+
+    /* Touch Device Optimizations */
+    @media (pointer: coarse) {
+      .btn, .input, .select {
+        min-height: 44px;
+      }
+
+      .card-actions .btn {
+        min-height: 36px;
+        min-width: 60px;
+      }
+
+      .close-btn {
+        min-width: 44px;
+        min-height: 44px;
+      }
+
+      .mobile-toggle {
+        min-width: 44px;
+        min-height: 44px;
+      }
+
+      .leaflet-control-zoom a {
+        width: 44px !important;
+        height: 44px !important;
+        line-height: 42px !important;
+      }
+    }
+
+    /* Print Styles */
+    @media print {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      aside, .topbar, .mobile-toggle, .mobile-close {
+        display: none !important;
+      }
+
+      #map {
+        height: 80vh;
+      }
+
+      .modal {
+        display: none !important;
+      }
+    }
+
+    /* Reduced Motion Preferences */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+
+      aside {
+        transition: none;
+      }
+
+      .btn:hover {
+        transform: none;
+      }
+
+      .card:hover {
+        transform: none;
+      }
+    }
+
+    /* Dark Mode Support */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1e293b;
+        --panel: #334155;
+        --line: #475569;
+        --text: #f1f5f9;
+        --muted: #94a3b8;
+      }
+
+      .input, .select {
+        background: #475569;
+        color: var(--text);
+      }
+
+      .btn {
+        background: #475569;
+        color: var(--text);
+      }
+
+      .card {
+        background: #475569;
+      }
+
+      .modal {
+        background: rgba(0,0,0,.6);
+      }
+
+      .modal-panel {
+        background: var(--panel);
+      }
+
+      .pill {
+        background: rgba(51, 65, 85, 0.95);
+        color: var(--text);
+      }
+
+      .toast {
+        background: var(--panel);
+        color: var(--text);
       }
     }
   </style>
 </head>
 <body>
   <div class="layout">
-    <aside>
+    <!-- Mobile Toggle Button -->
+    <button class="mobile-toggle" id="mobileToggle">☰</button>
+
+    <aside id="sidebar">
+      <!-- Mobile Close Button -->
+      <button class="mobile-close" id="mobileClose">×</button>
+      
       <header>
         <div class="brand">
           <div class="logo">RD</div>
@@ -852,6 +1606,35 @@
     const title = $('modalTitle');
     const adminStatus = $('adminStatus');
     const toggleLocationBtn = $('toggleLocation');
+    const sidebar = $('sidebar');
+    const mobileToggle = $('mobileToggle');
+    const mobileClose = $('mobileClose');
+
+    // Mobile sidebar functionality
+    mobileToggle.addEventListener('click', () => {
+      sidebar.classList.add('open');
+    });
+
+    mobileClose.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+    });
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth <= 1023 && 
+          sidebar.classList.contains('open') && 
+          !sidebar.contains(e.target) && 
+          !mobileToggle.contains(e.target)) {
+        sidebar.classList.remove('open');
+      }
+    });
+
+    // Close sidebar when window is resized to desktop
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 1023) {
+        sidebar.classList.remove('open');
+      }
+    });
 
     // Form fields
     const f_id = $('f_id');
@@ -991,6 +1774,11 @@
         }
         
         showToast('📍 Ubicación seleccionada: ' + lat + ', ' + lng);
+        
+        // Close mobile sidebar if open
+        if (window.innerWidth <= 1023) {
+          sidebar.classList.remove('open');
+        }
       }
     });
 
@@ -1053,6 +1841,11 @@
           const i = +card.getAttribute('data-i'); 
           const b = list[i]; 
           if (b) {
+            // Close mobile sidebar when clicking on a card
+            if (window.innerWidth <= 1023) {
+              sidebar.classList.remove('open');
+            }
+            
             map.flyTo([+b.lat, +b.lng], 15, {duration: 1});
             setTimeout(() => {
               markers.forEach(marker => {
@@ -1311,6 +2104,11 @@
       
       modal.style.display = 'flex';
       f_name.focus();
+
+      // Close mobile sidebar when modal opens
+      if (window.innerWidth <= 1023) {
+        sidebar.classList.remove('open');
+      }
     }
 
     // FIXED: función para cerrar modal - Solo se ejecuta con botones específicos
@@ -1331,16 +2129,15 @@
     window.closeModal = closeModal;
 
     $('cancel').onclick = closeModal;
-    
-    // REMOVED: Eliminamos el event listener que cerraba el modal al hacer clic fuera
-    // modal.addEventListener('click', (e) => { 
-    //   if (e.target === modal) closeModal(); 
-    // });
 
     // FIXED: Solo cerrar con Escape, no con clics en el mapa
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.style.display === 'flex') {
-        closeModal();
+      if (e.key === 'Escape') {
+        if (modal.style.display === 'flex') {
+          closeModal();
+        } else if (window.innerWidth <= 1023 && sidebar.classList.contains('open')) {
+          sidebar.classList.remove('open');
+        }
       }
     });
 
@@ -1442,10 +2239,136 @@
       draw();
     });
 
-    // Responsive
+    // Responsive map resize
     window.addEventListener('resize', () => {
-      setTimeout(() => map.invalidateSize(), 100);
+      setTimeout(() => {
+        map.invalidateSize();
+        // Close sidebar on desktop resize
+        if (window.innerWidth > 1023) {
+          sidebar.classList.remove('open');
+        }
+      }, 100);
     });
+
+    // Touch gestures for mobile
+    if ('ontouchstart' in window) {
+      let touchStartX = 0;
+      let touchStartY = 0;
+      
+      sidebar.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      
+      sidebar.addEventListener('touchmove', (e) => {
+        if (!sidebar.classList.contains('open')) return;
+        
+        const touchX = e.touches[0].clientX;
+        const touchY = e.touches[0].clientY;
+        const deltaX = touchX - touchStartX;
+        const deltaY = touchY - touchStartY;
+        
+        // Swipe left to close (only if mostly horizontal)
+        if (deltaX < -50 && Math.abs(deltaY) < Math.abs(deltaX)) {
+          sidebar.classList.remove('open');
+        }
+      }, { passive: true });
+    }
+
+    // Prevent zoom on double tap for iOS
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+      const now = (new Date()).getTime();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+
+    // Handle orientation change
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        map.invalidateSize();
+        // Close sidebar on orientation change for mobile
+        if (window.innerWidth <= 1023) {
+          sidebar.classList.remove('open');
+        }
+      }, 500);
+    });
+
+    // Add keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      // Ctrl/Cmd + K to focus search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        $('search').focus();
+      }
+      
+      // Ctrl/Cmd + N to create new branch
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n' && ADMIN_SECRET) {
+        e.preventDefault();
+        openModal();
+      }
+      
+      // Ctrl/Cmd + R to refresh
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        fetchAll().then(() => draw());
+      }
+    });
+
+    // Performance optimization: Debounce search
+    let searchTimeout;
+    $('search').addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        const q = $('search').value.trim().toLowerCase();
+        if (!q) return draw(rows);
+        
+        const list = rows.filter(b =>
+          (b.name || '').toLowerCase().includes(q) ||
+          (b.address || '').toLowerCase().includes(q) ||
+          (b.province || '').toLowerCase().includes(q) ||
+          (b.municipality || '').toLowerCase().includes(q) ||
+          (b.phone || '').toLowerCase().includes(q)
+        );
+        draw(list);
+      }, 300);
+    });
+
+    // Add loading states and better error handling
+    function setLoading(element, isLoading) {
+      if (isLoading) {
+        element.disabled = true;
+        element.style.opacity = '0.6';
+      } else {
+        element.disabled = false;
+        element.style.opacity = '1';
+      }
+    }
+
+    // Enhanced toast with types
+    function showToast(text, type = 'info') {
+      toast.textContent = text;
+      toast.className = 'toast toast-' + type;
+      toast.style.display = 'block';
+      
+      setTimeout(() => {
+        toast.style.display = 'none';
+        toast.className = 'toast';
+      }, type === 'error' ? 5000 : 3000);
+    }
+
+    // Add connection status indicator
+    window.addEventListener('online', () => {
+      showToast('🟢 Conexión restaurada', 'success');
+    });
+
+    window.addEventListener('offline', () => {
+      showToast('🔴 Sin conexión a internet', 'error');
+    });
+
+    console.log('Admin Sucursales RD - Responsive Version Loaded 📱💻');
   </script>
 </body>
 </html>
