@@ -899,39 +899,50 @@
       }
     }
 
-    // FIXED: Función de validación que NO crea sucursales de prueba
+    // FIXED: Validación real de contraseña sin crear datos
     async function validateAdminSecret(secret) {
       if (!secret.trim()) return false;
       
       try {
-        // Hacemos una petición OPTIONS para validar credenciales sin crear datos
+        // Intentamos una operación GET que requiere autenticación admin
+        // pero que no modifica datos
         const testResponse = await fetch(BASE_API, {
-          method: 'OPTIONS',
+          method: 'GET',
+          headers: { 
+            'x-admin-secret': secret,
+            'x-admin-test': 'true'  // Indicador para el servidor que es una prueba
+          }
+        });
+        
+        // Verificamos específicamente los códigos de error de autenticación
+        if (testResponse.status === 401 || testResponse.status === 403) {
+          console.log('Auth failed:', testResponse.status);
+          return false;
+        }
+        
+        // Si llegamos aquí sin 401/403, la contraseña parece válida
+        // Pero hagamos una segunda verificación con un método diferente
+        const doubleCheck = await fetch(BASE_API, {
+          method: 'HEAD',
           headers: { 
             'x-admin-secret': secret 
           }
         });
         
-        // Si es 401 o 403, la contraseña es incorrecta
-        if (testResponse.status === 401 || testResponse.status === 403) {
+        // Si cualquiera de las dos peticiones devuelve 401/403, es inválida
+        if (doubleCheck.status === 401 || doubleCheck.status === 403) {
+          console.log('Double check failed:', doubleCheck.status);
           return false;
         }
         
-        // Si obtenemos cualquier otra respuesta (200, 404, 405, etc.), la contraseña es válida
+        console.log('Auth validation passed');
         return true;
+        
       } catch (error) {
         console.error('Error validating admin secret:', error);
-        // En caso de error de conexión, validamos haciendo una petición HEAD
-        try {
-          const headResponse = await fetch(BASE_API, {
-            method: 'HEAD',
-            headers: { 'x-admin-secret': secret }
-          });
-          return headResponse.status !== 401 && headResponse.status !== 403;
-        } catch {
-          // Si todo falla, asumimos contraseña incorrecta por seguridad
-          return false;
-        }
+        // En caso de error de red, hacemos una validación más conservadora
+        // Asumimos que es incorrecta por seguridad
+        return false;
       }
     }
 
