@@ -899,6 +899,7 @@
       }
     }
 
+    // MODIFICACIÓN 1: Validación sin crear sucursal real
     async function validateAdminSecret(secret) {
       if (!secret.trim()) return false;
       
@@ -910,10 +911,10 @@
             'x-admin-secret': secret 
           },
           body: JSON.stringify({ 
-            test_validation: true,
-            name: "test",
+            validate_only: true, // Flag para solo validar, no crear sucursal
+            name: "validation_test_" + Date.now(),
             province: "test",
-            address: "test",
+            address: "test", 
             lat: 0,
             lng: 0
           })
@@ -922,7 +923,7 @@
         return testResponse.status !== 401 && testResponse.status !== 403;
       } catch (error) {
         console.error('Error validating admin secret:', error);
-        return true;
+        return false;
       }
     }
 
