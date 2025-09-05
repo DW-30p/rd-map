@@ -1136,6 +1136,12 @@
         return; 
       }
       
+      // Get hours value (custom or selected)
+      let hoursValue = f_hours.value;
+      if (hoursValue === 'Personalizado') {
+        hoursValue = f_hours_custom.value.trim();
+      }
+      
       const payload = {
         name: f_name.value.trim(),
         province: f_province.value.trim(),
@@ -1144,7 +1150,7 @@
         lat: parseFloat(f_lat.value),
         lng: parseFloat(f_lng.value),
         phone: f_phone.value.trim() || null,
-        hours: f_hours.value.trim() || null,
+        hours: hoursValue || null,
         is_active: f_active.value === 'true'
       };
       
@@ -1159,6 +1165,71 @@
       if (payload.lat < 17.5 || payload.lat > 20.0 || payload.lng < -72.5 || payload.lng > -68.0) {
         if (!confirm('⚠️ Las coordenadas parecen estar fuera de República Dominicana.\n¿Estás seguro de continuar?')) {
           return;
+        }
+      }
+      
+      // Show saving state
+      const saveBtn = $('save');
+      const originalText = saveBtn.textContent;
+      saveBtn.textContent = 'Guardando...';
+      saveBtn.disabled = true;
+      
+      try {
+        let resp;
+        if (editing && f_id.value) {
+          // UPDATE
+          resp = await fetch(`${BASE_API}?id=${encodeURIComponent(f_id.value)}`, {
+            method: 'PUT',
+            headers: { 
+              'Content-Type': 'application/json', 
+              'x-admin-secret': ADMIN_SECRET 
+            },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          // CREATE
+          resp = await fetch(BASE_API, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json', 
+              'x-admin-secret': ADMIN_SECRET 
+            },
+            body: JSON.stringify(payload)
+          });
+        }
+        
+        // Restore button
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
+        
+        if (!resp.ok) { 
+          const errorText = await resp.text();
+          console.error('Server error:', errorText);
+          showToast('❌ Error al guardar: ' + (errorText || 'Error desconocido')); 
+          return; 
+        }
+        
+        closeModal();
+        await fetchAll(); 
+        draw();
+        showToast('✅ Sucursal guardada correctamente');
+        
+        // If it was a new branch, zoom to it
+        if (!editing && payload.lat && payload.lng) {
+          setTimeout(() => {
+            map.flyTo([payload.lat, payload.lng], 15, {duration: 1});
+          }, 500);
+        }
+        
+      } catch (error) {
+        // Restore button
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
+        
+        console.error('Error:', error);
+        showToast('❌ Error de conexión: ' + error.message);
+      }
+    };;
         }
       }
       
