@@ -1047,6 +1047,30 @@
 
     toggleLocationBtn.onclick = toggleLocationSelection;
 
+    // Modal location selection button
+    toggleLocationModalBtn.onclick = () => {
+      // Close modal temporarily to select location
+      modal.style.display = 'none';
+      toggleLocationSelection();
+      
+      // Show instruction
+      showToast('📍 Modal cerrado temporalmente. Haz clic en el mapa para seleccionar ubicación');
+      
+      // Function to reopen modal after selection
+      const originalToggle = toggleLocationSelection;
+      toggleLocationSelection = () => {
+        originalToggle();
+        if (!isSelectingLocation) {
+          // Location was selected, reopen modal
+          setTimeout(() => {
+            modal.style.display = 'flex';
+          }, 500);
+          // Restore original function
+          toggleLocationSelection = originalToggle;
+        }
+      };
+    };
+
     // === Modal ===
     function openModal(branch = null) {
       editing = branch;
