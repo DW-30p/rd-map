@@ -932,7 +932,7 @@
       attributionControl: true
     }).setView(MAP_CENTER, MAP_ZOOM);
 
-    
+
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: ['a','b','c','d'],
@@ -1213,8 +1213,12 @@
         updateAdminStatus();
         showToast('✅ Modo admin activado correctamente');
       } else {
-        $('adminSecret').value = ADMIN_SECRET;
-        showToast('❌ Contraseña incorrecta. Modo admin no activado.');
+        // Reset to empty and update status to show as inactive
+        ADMIN_SECRET = '';
+        localStorage.removeItem('rd_admin_secret');
+        $('adminSecret').value = '';
+        updateAdminStatus();
+        showToast('❌ Contraseña incorrecta. Modo admin desactivado.');
       }
     };
 
