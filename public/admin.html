@@ -1,4 +1,3 @@
-<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
@@ -224,6 +223,17 @@
       background: var(--success);
       border-color: var(--success);
       color: white;
+    }
+
+    .btn.orange {
+      background: #f59e0b;
+      border-color: #f59e0b;
+      color: white;
+    }
+
+    .btn.orange:hover {
+      background: #d97706;
+      border-color: #d97706;
     }
 
     .grid { 
@@ -769,6 +779,8 @@
             <a class="btn" href="./">Ver Mapa Público</a>
           </div>
 
+          <button id="addByClickBtn" class="btn orange">📍 Agregar por Click</button>
+
           <input id="adminSecret" class="input" placeholder="Contraseña de administrador" type="password" />
           <button id="saveSecret" class="btn success">Activar Modo Admin</button>
         </div>
@@ -921,6 +933,7 @@
     let editing = null;
     let isSelectingLocation = false;
     let tempMarker = null;
+    let isAddByClickMode = false;
 
     // DOM Elements
     const $ = id => document.getElementById(id);
@@ -933,6 +946,7 @@
     const sidebar = $('sidebar');
     const mobileToggle = $('mobileToggle');
     const mobileClose = $('mobileClose');
+    const addByClickBtn = $('addByClickBtn');
 
     // Mobile sidebar functionality
     mobileToggle.addEventListener('click', () => {
@@ -996,6 +1010,10 @@
         adminStatus.innerHTML = '<span>🔒</span><span>Modo Admin: Desactivado</span>';
         $('saveSecret').textContent = 'Activar Modo Admin';
         $('saveSecret').className = 'btn success';
+        // Desactivar modo agregar por click si no hay admin
+        if (isAddByClickMode) {
+          toggleAddByClickMode();
+        }
       }
     }
 
@@ -1050,6 +1068,7 @@
 
     // Map click handler
     map.on('click', function(e) {
+      // Modo 1: Modal abierto o selección manual de ubicación
       if (modal.style.display === 'flex' || isSelectingLocation) {
         const lat = e.latlng.lat.toFixed(6);
         const lng = e.latlng.lng.toFixed(6);
@@ -1078,6 +1097,38 @@
         }
         
         showToast('📍 Ubicación seleccionada: ' + lat + ', ' + lng);
+        
+        if (window.innerWidth <= 768) {
+          sidebar.classList.remove('open');
+        }
+        return;
+      }
+
+      // Modo 2: Agregar sucursal por click (solo si admin está activo)
+      if (isAddByClickMode && ADMIN_SECRET) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+        
+        // Abrir modal automáticamente con las coordenadas
+        openModal();
+        f_lat.value = lat;
+        f_lng.value = lng;
+        
+        if (tempMarker) {
+          map.removeLayer(tempMarker);
+        }
+        
+        const customIcon = L.divIcon({
+          html: '<div style="background: #f59e0b; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4); border: 3px solid white;">📍</div>',
+          className: 'temp-marker',
+          iconSize: [38, 38],
+          iconAnchor: [19, 19]
+        });
+        
+        tempMarker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+        tempMarker.bindPopup('<div style="text-align: center; font-family: Inter, sans-serif;"><strong style="color: #f59e0b;">📍 Nueva sucursal</strong><br/>Lat: ' + lat + '<br/>Lng: ' + lng + '<br/><small>Complete el formulario para guardar</small></div>').openPopup();
+        
+        showToast('📍 Nueva sucursal en: ' + lat + ', ' + lng);
         
         if (window.innerWidth <= 768) {
           sidebar.classList.remove('open');
@@ -1339,6 +1390,32 @@
       openModal();
     };
 
+    // Add by click mode
+    function toggleAddByClickMode() {
+      if (!ADMIN_SECRET) {
+        alert('❌ Necesitas activar el modo admin primero');
+        return;
+      }
+
+      isAddByClickMode = !isAddByClickMode;
+      
+      if (isAddByClickMode) {
+        map.getContainer().style.cursor = 'crosshair';
+        addByClickBtn.textContent = '❌ Cancelar Modo Click';
+        addByClickBtn.style.background = '#ef4444';
+        addByClickBtn.style.borderColor = '#ef4444';
+        showToast('🎯 Modo activo: Haz clic en el mapa para agregar una nueva sucursal');
+      } else {
+        map.getContainer().style.cursor = '';
+        addByClickBtn.textContent = '📍 Agregar por Click';
+        addByClickBtn.style.background = '#f59e0b';
+        addByClickBtn.style.borderColor = '#f59e0b';
+        showToast('✅ Modo agregar por click desactivado');
+      }
+    }
+
+    addByClickBtn.onclick = toggleAddByClickMode;
+
     // Refresh
     $('refresh').onclick = async () => { 
       await fetchAll(); 
@@ -1538,7 +1615,7 @@
       draw();
     });
 
-    // Responsive probemos
+    // Responsive
     window.addEventListener('resize', () => {
       setTimeout(() => {
         map.invalidateSize();
@@ -1548,5 +1625,5 @@
       }, 100);
     });
   </script>
-</body>
+  </body>
 </html>
