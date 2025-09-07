@@ -1513,6 +1513,11 @@
         draw();
         showToast('✅ Sucursal guardada correctamente');
         
+        // Si se guardó exitosamente y estamos en modo agregar por click, desactivar el modo
+        if (isAddByClickMode) {
+          toggleAddByClickMode();
+        }
+        
         if (!editing && payload.lat && payload.lng) {
           setTimeout(() => {
             map.flyTo([payload.lat, payload.lng], 15, {duration: 1});
